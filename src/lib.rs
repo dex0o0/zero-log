@@ -1,3 +1,6 @@
+#[macro_use]
+pub mod macros;
+
 use std::{
     fs::{File, OpenOptions},
     io::{self, BufRead, Write},
@@ -193,6 +196,8 @@ impl FileStreamer {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use super::*;
 
     #[test]
@@ -249,8 +254,30 @@ mod tests {
         })?;
         assert_eq!(errors_found, 2);
 
-        // clear test file 
+        // clear test file
         let _ = std::fs::remove_file(test_path);
+        Ok(())
+    }
+
+    #[test]
+    fn test_log_macros() -> io::Result<()> {
+        let test_path = "test_macro.log";
+        {
+            let mut logger = Logger::new(test_path)?;
+            let user_id = 42;
+            let ip = "192.168.1.50";
+
+            info!(logger, "auth", "User {} logged in successfuly", user_id);
+            error!(logger, "net", "Connection failed from IP: {}", ip);
+        }
+
+        let stats = FileStreamer::analyze_file(test_path)?;
+
+        assert_eq!(stats.total_entries, 2);
+        assert_eq!(stats.info_count, 1);
+        assert_eq!(stats.error_count, 1);
+
+        let _ = fs::remove_file(test_path);
         Ok(())
     }
 }
