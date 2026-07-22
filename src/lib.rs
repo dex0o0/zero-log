@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{self, Write},
+    io::{self, BufRead, Write},
     path::Path,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -133,6 +133,64 @@ impl<'a> LogAnalyzer<'a> {
     }
 }
 
+/// =======================
+/// Log starts_with
+/// =======================
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct LogStats {
+    pub total_entries: usize,
+    pub error_count: usize,
+    pub warn_count: usize,
+    pub info_count: usize,
+    pub debug_count: usize,
+}
+
+impl LogStats {
+    pub fn process(&mut self, entry: &LogEntry) {
+        self.total_entries += 1;
+        match entry.level {
+            "ERROR" => self.error_count += 1,
+            "WARN" => self.warn_count += 1,
+            "INFO" => self.info_count += 1,
+            "DEBUG" => self.debug_count += 1,
+            _ => {}
+        }
+    }
+}
+
+pub struct FileStreamer;
+
+impl FileStreamer {
+    pub fn stream<P, F>(path: P, mut callbak: F) -> io::Result<()>
+    where
+        P: AsRef<Path>,
+        F: FnMut(&LogEntry),
+    {
+        let file = File::open(path)?;
+        let mut reader = io::BufReader::new(file);
+        let mut line_buf = String::with_capacity(512);
+
+        while reader.read_line(&mut line_buf)? > 0 {
+            if let Some(entry) = LogEntry::parse(&line_buf) {
+                callbak(&entry);
+            }
+            line_buf.clear();
+        }
+
+        Ok(())
+    }
+
+    pub fn analyze_file<P: AsRef<Path>>(path: P) -> io::Result<LogStats> {
+        let mut stats = LogStats::default();
+        Self::stream(path, |entry| {
+            stats.process(entry);
+        })?;
+
+        Ok(stats)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -161,5 +219,38 @@ mod tests {
         assert_eq!(errors.len(), 1);
         assert_eq!(errors[0].target, "db");
         assert_eq!(errors[0].message, "Connection lost");
+    }
+
+    #[test]
+    fn test_file_streamer_and_stats() -> io::Result<()> {
+        use std::io::Write;
+
+        // cteate file for test
+        let test_path = "test_stream.log";
+        {
+            let mut file = File::create(test_path)?;
+            writeln!(file, "[100] [INFO] [sys] Booting")?;
+            writeln!(file, "[101] [ERROR] [net] Disconnected")?;
+            writeln!(file, "[102] [ERROR] [db] Query timeout")?;
+        }
+
+        // ۱. test analyzer on file
+        let stats = FileStreamer::analyze_file(test_path)?;
+        assert_eq!(stats.total_entries, 3);
+        assert_eq!(stats.error_count, 2);
+        assert_eq!(stats.info_count, 1);
+
+        // ۲. fillter test in streaming
+        let mut errors_found = 0;
+        FileStreamer::stream(test_path, |entry| {
+            if entry.level == "ERROR" {
+                errors_found += 1;
+            }
+        })?;
+        assert_eq!(errors_found, 2);
+
+        // clear test file 
+        let _ = std::fs::remove_file(test_path);
+        Ok(())
     }
 }
