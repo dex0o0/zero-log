@@ -30,19 +30,37 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-/// ==========================
-/// 1.Log Levels
-/// ==========================
-
+/// Represents the severity level of a log entry.
+///
+/// # Examples
+/// ```rust
+/// use zero_log::LogLevel;
+///
+/// let level = LogLevel::Error;
+/// assert_eq!(level.as_str(), "ERROR" );
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LogLevel {
+    /// Represents critical errors or failure events.
     Error,
+    /// Represents warning conditions that might tequire attention.
     Warn,
+    /// Represents general informational messages.
     Info,
+    /// Represents detaled diagnostic information for debuging.
     Debug,
 }
 
 impl LogLevel {
+    /// Converts the [`LogLevel`] variant into its uppercase string slice representation (`&'static str`).
+    ///
+    /// # Examples
+    /// ```rust
+    /// use zero_log::LogLevel;
+    ///
+    /// assert_eq!(LogLevel::Info.as_str(), "INFO" );
+    /// assert_eq!(LogLevel::Warn.as_str(), "WARN" );
+    /// ```
     pub fn as_str(&self) -> &'static str {
         match self {
             LogLevel::Error => "ERROR",
@@ -53,23 +71,42 @@ impl LogLevel {
     }
 }
 
-/// ===============================
-/// 2. Logger (Writung Logs)
-/// ===============================
+/// A lightweight logger that writes formatted log messages a file or standard output (`stdout`).
+///
+/// # Examples
+/// ```rust,no_run
+/// use zero_log::{Logger,LogLevel};
+///
+/// // Create a logger that appends to a file
+/// let mut logger = Logger::new("app.log").unwrap();
+/// logger.info("server", "Server started successfuly").unwrap();
+///
+/// // Or create a logger that prints directly to stdout
+/// let mut stdout_logger = Logger::stdout();
+/// stdout_logger.error("net","Connection timeout").unwrap();
+/// ```
 pub struct Logger {
     file: Option<File>,
 }
 
 impl Logger {
+    /// Create a new [`Logger`] instance that writes logs to the specified file path.
+    ///
+    /// If the file does not exist, it will be created. If it exists, new logs will be appended.
+    ///
+    /// #Errors
+    /// Returns an [`io::Result::Err`] if the file cannot ne opened or created.
     pub fn new<P: AsRef<Path>>(path: P) -> io::Result<Self> {
         let file = OpenOptions::new().create(true).append(true).open(path)?;
         Ok(Self { file: Some(file) })
     }
 
+    /// Creates a new [`Logger`] instance that prints formatted logs directly to standard output (`stdout`).
     pub fn stdout() -> Self {
         Self { file: None }
     }
 
+    /// Writes a formatted log entry with a specific [`LogLevel`], target module, and message.
     pub fn log(&mut self, level: LogLevel, target: &str, message: &str) -> io::Result<()> {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -92,9 +129,12 @@ impl Logger {
         Ok(())
     }
 
+    /// Conveniece helper method to write an `INFO` level log.
     pub fn info(&mut self, target: &str, message: &str) -> io::Result<()> {
         self.log(LogLevel::Info, target, message)
     }
+
+    /// Conveniece helper, method to write an `ERROR` level log.
     pub fn error(&mut self, target: &str, message: &str) -> io::Result<()> {
         self.log(LogLevel::Error, target, message)
     }
@@ -166,19 +206,43 @@ fn extract_bracket(input: &str) -> Option<(&str, &str)> {
     Some((content, remaining))
 }
 
+/// An in-memory, zero-copy log analyzer that oprates on raw log string slices (`&str`).
+///
+/// Provides iterator-based operations to filter and inspect log entries without memory allocation.
+///
+/// # Examples
+/// ```rust
+/// use zero_log::{LogAnalyzer,LogLevel};
+///
+/// let raw_data = "\
+/// [100] [INFO] [sys] Ready
+/// [101] [ERROR] [auth] Failed login
+/// ";
+///
+///let analyzer = LogAnalyzer::new(raw_data);
+///let errors:Vec<_> = analyzer.filter_by_level(LogLevel::Error).collect();
+///
+///assert_eq!(errors.len(), 1 );
+///assert_eq!(errors[0].target , "auth" );
+/// ```
 pub struct LogAnalyzer<'a> {
     raw_data: &'a str,
 }
 
 impl<'a> LogAnalyzer<'a> {
+    /// Creates a new [`LogAnalyzer`] wrapped around a raw log string slice.
     pub fn new(raw_data: &'a str) -> Self {
         Self { raw_data }
     }
 
+    /// Returns an iterator yielding parsed [`LogEntry`] items from the raw log slice.
+    ///
+    /// malformed lines that fail to patse are automatically skipped.
     pub fn entries(&self) -> impl Iterator<Item = LogEntry<'a>> {
         self.raw_data.lines().filter_map(LogEntry::parse)
     }
 
+    /// Returns an iterator that filtering log entries matching the specified [`LogLevel`].
     pub fn filter_by_level(&self, level: LogLevel) -> impl Iterator<Item = LogEntry<'a>> {
         let target_level = level.as_str();
         self.entries()
