@@ -10,7 +10,7 @@
 //!
 //! ## Quick Start
 //! ```rust
-//! # use zero-log::LogEntry;
+//! use zero_log::LogEntry;
 //!
 //! let line = "[1721580000] [ERROR] [auth] Failed login attempt";
 //! if let Some(entry) = LogEntry::parse(line){
@@ -126,7 +126,7 @@ impl<'a> LogEntry<'a> {
     ///
     /// # Examples
     /// ```rust
-    /// # use zero-log::LogEntry;
+    /// use zero_log::LogEntry;
     ///
     /// let raw_line = "[1721580000] [WARN] [database] High latency detected";
     /// let entry = LogEntry::parse(raw_line).unwrap();
@@ -223,8 +223,11 @@ impl FileStreamer {
     /// Uses a single reusable buffer to maintain zero heap re-allocation during execution.
     ///
     /// # Errors
-    /// ```no_run
-    /// # use zero-log::FileStreamer;
+    /// Returns an [`std::io::Result::Err`] if the file cannot be opened or read.
+    ///
+    /// # Examples
+    /// ```rust,no_run
+    /// use zero_log::FileStreamer;
     ///
     /// let stats = FileStreamer::analyze_file("server.log").unwrap();
     /// println!("Total lines processed: {}",stats.total_entries);
