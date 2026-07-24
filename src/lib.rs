@@ -113,18 +113,26 @@ impl Logger {
             .map(|d| d.as_secs())
             .unwrap_or(0);
 
-        let formatted = format!(
-            "[{}] [{}] [{}] {}\n",
-            timestamp,
-            level.as_str(),
-            target,
-            message
-        );
-
         if let Some(ref mut f) = self.file {
-            f.write_all(formatted.as_bytes())?;
+            writeln!(
+                f,
+                "[{}] [{}] [{}] {}",
+                timestamp,
+                level.as_str(),
+                target,
+                message
+            )?;
         } else {
-            print!("{}", formatted);
+            let stdout = io::stdout();
+            let mut handle = stdout.lock();
+            writeln!(
+                handle,
+                "[{}] [{}] [{}] {}",
+                timestamp,
+                level.as_str(),
+                target,
+                message
+            )?;
         }
         Ok(())
     }
