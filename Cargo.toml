@@ -1,6 +1,6 @@
 [package]
 name = "zero-log"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 description = "An ultra-fast, zero-dependency, and zero-allocation log streaming and analysis library for Rust."
 license ="MIT"
