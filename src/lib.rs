@@ -23,6 +23,8 @@
 #[macro_use]
 pub mod macros;
 
+pub mod time_date;
+
 use std::{
     fs::{File, OpenOptions},
     io::{self, BufRead, Write},
