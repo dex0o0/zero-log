@@ -1,4 +1,7 @@
-use std::fmt;
+use std::{
+    fmt,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DTime {
@@ -21,6 +24,14 @@ pub struct DTime {
 /// assert_eq!(sdt,"2023-11-14 22:13:20");
 /// ```
 impl DTime {
+    pub fn now() -> Self {
+        let ts = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_secs() as i64)
+            .unwrap();
+
+        Self::from_unix(ts)
+    }
     pub fn from_unix(timestamp: i64) -> Self {
         let days = timestamp.div_euclid(86400);
         let secs_in_day = timestamp.rem_euclid(86400);
