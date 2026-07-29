@@ -11,7 +11,7 @@ zero-log is designed for performance: zero external crates, zero heap allocation
 - Streaming processing — single reusable buffer for line-by-line processing of very large log files.
 - Pluggable sinks — `LogSink` trait with `StdoutSink`, `FileSink` and test `MemorySink`.
 - Lightweight logging macros — `info!`, `error!`, `warn!`, `debug!` that accept an optional sink to remain zero-allocation.
-- Human-readable timestamps — `DTime` provides formatted date/time strings.
+- Human-readable UTC timestamps — `DTime` provides formatted date/time strings in `YYYY-MM-DD HH:MM:SS` (UTC).
 - Fast analysis utilities — `LogAnalyzer`, `FileStreamer`, and `LogStats`.
 
 ## Installation
@@ -78,7 +78,7 @@ The macro forms:
 use zero_log::LogEntry;
 
 fn main() {
-    let line = "[1721580000] [ERROR] [auth] Invalid password attempt";
+    let line = "[2026-07-29 14:32:01] [ERROR] [auth] Invalid password attempt";
     if let Some(entry) = LogEntry::parse(line) {
         assert_eq!(entry.level, "ERROR");
         assert_eq!(entry.target, "auth");
@@ -96,8 +96,8 @@ use zero_log::{LogAnalyzer, LogLevel};
 
 fn main() {
     let data = "\
-[1721580000] [INFO] [server] Started
-[1721580001] [ERROR] [db] Connection lost
+[2026-07-29 14:32:01] [INFO] [server] Started
+[2026-07-29 14:32:02] [ERROR] [db] Connection lost
 ";
 
     let analyzer = LogAnalyzer::new(data);
@@ -151,12 +151,12 @@ Expected log line format (used by parser and analyzer):
 Example:
 
 ```
-[1721580000] [ERROR] [auth_service] Invalid password attempt
-[1721580001] [INFO] [server] Server started successfully
-[1721580002] [WARN] [db] Connection pool nearly exhausted
+[2026-07-29 14:32:01] [ERROR] [auth_service] Invalid password attempt
+[2026-07-29 14:32:01] [INFO] [server] Server started successfully
+[2026-07-29 14:32:02] [WARN] [db] Connection pool nearly exhausted
 ```
 
-Timestamps are emitted by the built-in `DTime` helper and formatted like `YYYY-MM-DD HH:MM:SS` when macros/sinks use the `DTime::now()` formatted value, or they may be plain unix seconds depending on your sink usage.
+Timestamps are emitted by the built-in `DTime` helper and formatted as `YYYY-MM-DD HH:MM:SS` in UTC (e.g. `[2026-07-29 14:32:01]`).
 
 ## API overview
 
@@ -196,7 +196,7 @@ Timestamps are emitted by the built-in `DTime` helper and formatted like `YYYY-M
 
 - StackBuffer: small stack-allocated buffer used by logging macros to avoid heap allocations.
 - `event::log_event` writes formatted lines into the stack buffer and then calls the sink.
-- `time_date::DTime` provides conversion from unix seconds to human-readable date/time without external crates.
+- `time_date::DTime` provides conversion from unix seconds to human-readable date/time without external crates; timestamps are emitted in UTC.
 
 ## Testing
 
