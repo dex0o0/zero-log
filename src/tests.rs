@@ -1,11 +1,11 @@
-use crate::buffer::StackBuffer;
-use crate::io;
-use crate::sink::MemorySink;
-use crate::time_date::DTime;
 use crate::FileStreamer;
 use crate::LogAnalyzer;
 use crate::LogEntry;
 use crate::LogLevel;
+use crate::buffer::StackBuffer;
+use crate::io;
+use crate::sink::MemorySink;
+use crate::time_date::DTime;
 use core::fmt::Write;
 use std::fs::File;
 
