@@ -1,17 +1,17 @@
-# zero-log 📝
+# zero-log
 
 A lightweight and efficient Rust library for logging and log analysis, with a focus on memory efficiency and fast processing using zero-copy parsing techniques.
 
-## ✨ Key Features
+## Key Features
 
-- 🚀 **High Performance** - Zero-copy parsing for minimal memory usage
-- 📊 **Log Analysis** - Parse and analyze stored logs efficiently
-- 🎯 **Multiple Log Levels** - Support for ERROR, WARN, INFO, and DEBUG
-- 💾 **Flexible Output** - Write logs to files or standard output
-- 🔍 **Smart Filtering** - Filter logs by level and other criteria
-- 📈 **Statistics** - Count and analyze log entries
+- **High Performance** - Zero-copy parsing for minimal memory usage
+- **Log Analysis** - Parse and analyze stored logs efficiently
+- **Multiple Log Levels** - Support for ERROR, WARN, INFO, and DEBUG
+- **Flexible Output** - Write logs to files or standard output
+- **Smart Filtering** - Filter logs by level and other criteria
+- **Statistics** - Count and analyze log entries
 
-## 🛠️ Installation
+## Installation
 
 Add this to your `Cargo.toml`:
 
@@ -20,7 +20,7 @@ Add this to your `Cargo.toml`:
 zero-log = { path = "./zero-log" }
 ```
 
-## 📖 Quick Start
+## Quick Start
 
 ### 1. Create a Logger and Write Logs
 
@@ -117,7 +117,7 @@ fn main() -> std::io::Result<()> {
     // Process logs line by line
     FileStreamer::stream("app.log", |entry| {
         if entry.level == "ERROR" {
-            println!("⚠️ Error: {}", entry.message);
+            println!("Error: {}", entry.message);
         }
     })?;
     
@@ -125,7 +125,7 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-## 📋 Log Format
+## Log Format
 
 Logs follow this standard format:
 
@@ -140,7 +140,7 @@ Logs follow this standard format:
 [1721580002] [WARN] [db] Connection pool nearly exhausted
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Main Components
 
@@ -153,7 +153,7 @@ Logs follow this standard format:
 | **LogStats** | Stores statistics about logs |
 | **FileStreamer** | Streams log files for processing |
 
-## 🧪 Testing
+## Testing
 
 Run the test suite:
 
@@ -162,12 +162,12 @@ cargo test
 ```
 
 Tests included:
-- ✅ Zero-copy parsing test
-- ✅ Log filtering by level
-- ✅ File streaming and statistics
-- ✅ Logging macros
+- Zero-copy parsing test
+- Log filtering by level
+- File streaming and statistics
+- Logging macros
 
-## 💡 Complete Example
+## Complete Example
 
 ```rust
 use zero_log::{Logger, FileStreamer, LogAnalyzer, LogLevel, info, error};
@@ -201,7 +201,7 @@ fn main() -> std::io::Result<()> {
 }
 ```
 
-## 📚 API Documentation
+## API Documentation
 
 ### Logger
 
@@ -229,15 +229,15 @@ fn main() -> std::io::Result<()> {
 - `warn!(logger, target, message)` - Warning level log
 - `debug!(logger, target, message)` - Debug level log
 
-## 📄 License
+## License
 
 This project is licensed under the [MIT License](LICENSE).
 
-## 👨‍💻 Author
+## Author
 
 Created by [@dex0o0](https://github.com/dex0o0)
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Here's how:
 
@@ -247,12 +247,12 @@ Contributions are welcome! Here's how:
 4. Push to the branch (`git push origin feature/YourFeature`)
 5. Open a Pull Request
 
-## ⭐ Show Your Support
+## Show Your Support
 
-If you find this project helpful, please give it a ⭐!
+If you find this project helpful, please give it a star!
 
 ---
 
 **Version:** 0.2.0  
-**Language:** Rust 🦀  
+**Language:** Rust  
 **Status:** Active Development
