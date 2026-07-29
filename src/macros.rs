@@ -1,35 +1,43 @@
 #[macro_export]
-macro_rules! log_msg {
-    ($logger:expr,$level:expr,$target:expr,$($arg:tt)*) => {
-        let msg = format!($($arg)*);
-        let _ = $logger.log($level,$target,&msg);
-    };
-}
-
-#[macro_export]
 macro_rules! info {
-    ($logger:expr,$target:expr,$($arg:tt)*) => {
-        $crate::log_msg!($logger,$crate::LogLevel::Info,$target,$($arg)*);
+    ($sink:expr => $target:expr, $($arg:tt)*) => {
+        $crate::event::log_event($sink, "INFO", $target, format_args!($($arg)*));
+    };
+    ($target:expr, $($arg:tt)*) => {
+        let mut sink = $crate::sink::StdoutSink;
+        $crate::event::log_event(&mut sink, "INFO", $target, format_args!($($arg)*));
     };
 }
 
 #[macro_export]
 macro_rules! error {
-    ($logger:expr,$target:expr,$($arg:tt)*) => {
-        $crate::log_msg!($logger,$crate::LogLevel::Error,$target,$($arg)*);
+    ($sink:expr => $target:expr, $($arg:tt)*) => {
+        $crate::event::log_event($sink, "ERROR", $target, format_args!($($arg)*));
+    };
+    ($target:expr, $($arg:tt)*) => {
+        let mut sink = $crate::sink::StdoutSink;
+        $crate::event::log_event(&mut sink, "ERROR", $target, format_args!($($arg)*));
     };
 }
 
 #[macro_export]
 macro_rules! warn {
-    ($logger:expr,$target:expr,$($arg:tt)*) => {
-        $crate::log_msg!($logger,$crate::LogLevel::Warn,$target,$($arg)*);
+    ($sink:expr => $target:expr, $($arg:tt)*) => {
+        $crate::event::log_event($sink, "WARN", $target, format_args!($($arg)*));
+    };
+    ($target:expr, $($arg:tt)*) => {
+        let mut sink = $crate::sink::StdoutSink;
+        $crate::event::log_event(&mut sink, "WARN", $target, format_args!($($arg)*));
     };
 }
 
 #[macro_export]
 macro_rules! debug {
-    ($logger:expr,$target:expr,$($arg:tt)*) => {
-        $crate::log_msg!($logger,$crate::LogLevel::Debug,$target,$($arg)*);
+    ($sink:expr => $target:expr, $($arg:tt)*) => {
+        $crate::event::log_event($sink, "DEBUG", $target, format_args!($($arg)*));
+    };
+    ($target:expr, $($arg:tt)*) => {
+        let mut sink = $crate::sink::StdoutSink;
+        $crate::event::log_event(&mut sink, "DEBUG", $target, format_args!($($arg)*));
     };
 }
