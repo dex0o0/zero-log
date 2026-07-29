@@ -4,7 +4,7 @@
 //! and streaming analysis library for Rust.
 //!
 //! ## key Features
-//! - **Zero Dependencies:** Compile in milliseconds with no external ctates.
+//! - **Zero Dependencies:** Compile in milliseconds with no external crates.
 //! - **Zero Allocation Parsing:** Utilizes string slices (`&str`) to avoid heap allocations.
 //! - **Streaming Processing:** Efficiently analyzes massive log files line-by-line using a single buffer.
 //!
@@ -21,15 +21,20 @@
 //! ```
 
 #[macro_use]
-pub mod macros;
+mod macros;
 
+#[cfg(test)]
+mod tests;
+
+pub mod buffer;
+pub mod event;
+pub mod sink;
 pub mod time_date;
 
 use std::{
-    fs::{File, OpenOptions},
-    io::{self, BufRead, Write},
+    fs::File,
+    io::{self, BufRead},
     path::Path,
-    time::{SystemTime, UNIX_EPOCH},
 };
 
 /// Represents the severity level of a log entry.
@@ -45,11 +50,11 @@ use std::{
 pub enum LogLevel {
     /// Represents critical errors or failure events.
     Error,
-    /// Represents warning conditions that might tequire attention.
+    /// Represents warning conditions that might require attention.
     Warn,
     /// Represents general informational messages.
     Info,
-    /// Represents detaled diagnostic information for debuging.
+    /// Represents detailed diagnostic information for debuging.
     Debug,
 }
 
@@ -70,83 +75,6 @@ impl LogLevel {
             LogLevel::Info => "INFO",
             LogLevel::Debug => "DEBUG",
         }
-    }
-}
-
-/// A lightweight logger that writes formatted log messages a file or standard output (`stdout`).
-///
-/// # Examples
-/// ```rust,no_run
-/// use zero_log::{Logger,LogLevel};
-///
-/// // Create a logger that appends to a file
-/// let mut logger = Logger::new("app.log").unwrap();
-/// logger.info("server", "Server started successfuly").unwrap();
-///
-/// // Or create a logger that prints directly to stdout
-/// let mut stdout_logger = Logger::stdout();
-/// stdout_logger.error("net","Connection timeout").unwrap();
-/// ```
-pub struct Logger {
-    file: Option<File>,
-}
-
-impl Logger {
-    /// Create a new [`Logger`] instance that writes logs to the specified file path.
-    ///
-    /// If the file does not exist, it will be created. If it exists, new logs will be appended.
-    ///
-    /// #Errors
-    /// Returns an [`io::Result::Err`] if the file cannot ne opened or created.
-    pub fn new<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let file = OpenOptions::new().create(true).append(true).open(path)?;
-        Ok(Self { file: Some(file) })
-    }
-
-    /// Creates a new [`Logger`] instance that prints formatted logs directly to standard output (`stdout`).
-    pub fn stdout() -> Self {
-        Self { file: None }
-    }
-
-    /// Writes a formatted log entry with a specific [`LogLevel`], target module, and message.
-    pub fn log(&mut self, level: LogLevel, target: &str, message: &str) -> io::Result<()> {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
-
-        if let Some(ref mut f) = self.file {
-            writeln!(
-                f,
-                "[{}] [{}] [{}] {}",
-                timestamp,
-                level.as_str(),
-                target,
-                message
-            )?;
-        } else {
-            let stdout = io::stdout();
-            let mut handle = stdout.lock();
-            writeln!(
-                handle,
-                "[{}] [{}] [{}] {}",
-                timestamp,
-                level.as_str(),
-                target,
-                message
-            )?;
-        }
-        Ok(())
-    }
-
-    /// Conveniece helper method to write an `INFO` level log.
-    pub fn info(&mut self, target: &str, message: &str) -> io::Result<()> {
-        self.log(LogLevel::Info, target, message)
-    }
-
-    /// Conveniece helper, method to write an `ERROR` level log.
-    pub fn error(&mut self, target: &str, message: &str) -> io::Result<()> {
-        self.log(LogLevel::Error, target, message)
     }
 }
 
@@ -216,7 +144,7 @@ fn extract_bracket(input: &str) -> Option<(&str, &str)> {
     Some((content, remaining))
 }
 
-/// An in-memory, zero-copy log analyzer that oprates on raw log string slices (`&str`).
+/// An in-memory, zero-copy log analyzer that operates on raw log string slices (`&str`).
 ///
 /// Provides iterator-based operations to filter and inspect log entries without memory allocation.
 ///
@@ -333,93 +261,5 @@ impl FileStreamer {
         })?;
 
         Ok(stats)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::fs;
-
-    use super::*;
-
-    #[test]
-    fn test_zero_copy_parsing() {
-        let raw_log = "[1721580000] [ERROR] [auth_service] Invalid password attempt";
-        let entry = LogEntry::parse(raw_log).expect("Failed to parse");
-
-        assert_eq!(entry.timestamp, "1721580000");
-        assert_eq!(entry.level, "ERROR");
-        assert_eq!(entry.target, "auth_service");
-        assert_eq!(entry.message, "Invalid password attempt");
-    }
-
-    #[test]
-    fn test_zero_copy_analyzer_filtering() {
-        let logs = "\
-[1721580000] [INFO] [server] Server started
-[1721580001] [ERROR] [db] Connection lost
-[1721580002] [INFO] [server] Client connected
-";
-        let analyzer = LogAnalyzer::new(logs);
-        let errors: Vec<_> = analyzer.filter_by_level(LogLevel::Error).collect();
-
-        assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0].target, "db");
-        assert_eq!(errors[0].message, "Connection lost");
-    }
-
-    #[test]
-    fn test_file_streamer_and_stats() -> io::Result<()> {
-        use std::io::Write;
-
-        // cteate file for test
-        let test_path = "test_stream.log";
-        {
-            let mut file = File::create(test_path)?;
-            writeln!(file, "[100] [INFO] [sys] Booting")?;
-            writeln!(file, "[101] [ERROR] [net] Disconnected")?;
-            writeln!(file, "[102] [ERROR] [db] Query timeout")?;
-        }
-
-        // ۱. test analyzer on file
-        let stats = FileStreamer::analyze_file(test_path)?;
-        assert_eq!(stats.total_entries, 3);
-        assert_eq!(stats.error_count, 2);
-        assert_eq!(stats.info_count, 1);
-
-        // ۲. fillter test in streaming
-        let mut errors_found = 0;
-        FileStreamer::stream(test_path, |entry| {
-            if entry.level == "ERROR" {
-                errors_found += 1;
-            }
-        })?;
-        assert_eq!(errors_found, 2);
-
-        // clear test file
-        let _ = std::fs::remove_file(test_path);
-        Ok(())
-    }
-
-    #[test]
-    fn test_log_macros() -> io::Result<()> {
-        let test_path = "test_macro.log";
-        {
-            let mut logger = Logger::new(test_path)?;
-            let user_id = 42;
-            let ip = "192.168.1.50";
-
-            info!(logger, "auth", "User {} logged in successfuly", user_id);
-            error!(logger, "net", "Connection failed from IP: {}", ip);
-        }
-
-        let stats = FileStreamer::analyze_file(test_path)?;
-
-        assert_eq!(stats.total_entries, 2);
-        assert_eq!(stats.info_count, 1);
-        assert_eq!(stats.error_count, 1);
-
-        let _ = fs::remove_file(test_path);
-        Ok(())
     }
 }
