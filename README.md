@@ -20,7 +20,7 @@ From crates.io (when published):
 
 ```toml
 [dependencies]
-zero-log = "0.3.0"
+zero-log = "0.3.1"
 ```
 
 or for local development:
